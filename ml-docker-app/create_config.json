@@ -1,0 +1,12 @@
+{
+    "EndpointConfigName": "Endpoint4",
+    "ProductionVariants": [
+        {
+            "VariantName": "RandomForestVariant2",
+            "ModelName": "my-randomforest-model4",
+            "InitialInstanceCount": 1,
+            "InstanceType": "ml.t2.medium",
+            "InitialVariantWeight": 1.0
+        }
+    ]
+}
