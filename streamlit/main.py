@@ -8,6 +8,16 @@ import os
 from pymongo import MongoClient #Used to create the connection
 load_dotenv(find_dotenv()) #Shorcut to load the enviroment file
 
+
+#S3 libraries
+
+import streamlit as st
+import joblib
+import numpy as np
+import boto3
+import tempfile
+
+
 #'''Streamlit settings------------------------------------------------------------------------------------------------------------- '''
 
 # Page title
@@ -157,16 +167,11 @@ def form_content(username):
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file, index_col=False)
-        #df = pd.read_csv(secret_name_or_arn="arn:aws:secretsmanager:us-east-2:767397996410:secret:dev/s3/bucket_token-6t6xMP", index_col=False)
-
-        #st.write(df.head())
-        #st.dataframe(data=df, use_container_width=True)
+        
 
 
     # Select example data
     st.markdown('**2. Use example data**')
-
-
     # Download example data
     @st.cache_data
     def convert_df(input_df):
