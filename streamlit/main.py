@@ -2,20 +2,15 @@ import time
 import streamlit as st
 from datetime import datetime
 import pandas as pd
+import numpy as np
 
+
+# MongoDB libraries
 from dotenv import load_dotenv, find_dotenv #Used for import the function to load .env file
 import os
 from pymongo import MongoClient #Used to create the connection
 load_dotenv(find_dotenv()) #Shorcut to load the enviroment file
 
-
-#S3 libraries
-
-import streamlit as st
-import joblib
-import numpy as np
-import boto3
-import tempfile
 
 
 #'''Streamlit settings------------------------------------------------------------------------------------------------------------- '''
@@ -43,8 +38,6 @@ def connect_db():
     client = MongoClient(connection_string)
     db = client["bankchurnapp"]
     return db
-
-
 
 #'''Login App Function------------------------------------------------------------------------------------------------------------- '''
 
@@ -121,15 +114,9 @@ def login_app():
                         st.session_state.username = ''  # Set username to empty string
                         st.session_state.succesful_login = False  # Set successful_login to False
                         st.session_state.form = ''  # Reset form state
-                        st.experimental_rerun() #This is to refresh the page and get rid of the username and password fields from the sidebar
-
                         st.sidebar.success('You have successfully registered!')
-                        
-                        # login_form = st.sidebar.form(key='signin_form', clear_on_submit=True)
-                        # username = login_form.text_input(label='Enter Username')
-                        # password = login_form.text_input(label='Enter Password', type='password')
-                        
-                        del new_user_pas, user_pas_conf                        
+                        st.experimental_rerun() #This is to refresh the page and get rid of the username and password fields from the sidebar
+                 
     
     
     elif st.session_state.username == '':
@@ -162,59 +149,61 @@ def login_app():
 def form_content(username):
     
     st.header('Input data')
-
-    st.markdown('**1. Use custom data**')
+    st.markdown("**1. Load the clients' data**")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
     if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file, index_col=False)
-        
-
-
-    # Select example data
-    st.markdown('**2. Use example data**')
-    # Download example data
-    @st.cache_data
-    def convert_df(input_df):
-        return input_df.to_csv(index=False).encode('utf-8')
-    example_csv = pd.read_csv('https://raw.githubusercontent.com/dataprofessor/data/master/delaney_solubility_with_descriptors.csv')
-    csv = convert_df(example_csv)
-    st.download_button(
-        label="Download example CSV",
-        data=csv,
-        file_name='delaney_solubility_with_descriptors.csv',
-        mime='text/csv',
-    )
-
+        df = pd.read_csv(uploaded_file, index_col=False)      
 
     
     # Initiate the model building process
     if uploaded_file:  
-        st.subheader('Model building')
-        st.write('Model building in progress...')
+        st.subheader('Processing the data')
+        st.write('Processing in progress...')
 
         # Placeholder for model building process
         with st.spinner('Wait for it...'):
-            time.sleep(5)
-
-        st.write('Model building complete!')
-
-        # Display model performance
-        st.subheader('Model Processing')
-        st.write('Building predictions...')
-
-        # Placeholder for model performance metrics
-        with st.spinner('Wait for it...'):
-            time.sleep(3)
+            time.sleep(2)
 
         #st.write('Customer predictions are now complete!')
-        st.markdown(''':blue[Customer predictions are now complete!]''')
+        st.markdown(''':blue[Customer data has been loaded!]''')
 
         st.dataframe(data=df, use_container_width=True)
 
 
+    #'''--------------------------------------------------------------------------------------
+    
+    st.markdown('**2. Load the saved model**')
+    # Load the saved model
+    uploaded_pkl = st.file_uploader("Upload .pkl file", type=["pkl"])
 
-    
-    
+    # Check if a file is uploaded
+    if uploaded_pkl is not None:
+        st.write("File uploaded successfully!")
+
+        try:
+            model = pd.read_pickle(uploaded_pkl)
+            
+        except Exception as e:
+            st.error(f"Error loading .pkl file: {e}")
+
+    else:
+        st.info("Please upload a .pkl file.")
+
+    #'''--------------------------------------------------------------------------------------
+    st.markdown('**3. Predict churn clients**')
+    # Load the saved model
+    if st.button('Predict'):
+        # # Convert input data to numpy array
+        # input_data_np = np.array(df)  # Adjust input data format as needed
+
+        # Perform inference using the loaded model
+        prediction = model.predict(df)
+        df['predictions'] = prediction
+        # Display prediction
+        st.dataframe(data=prediction, use_container_width=True)
+
+
+
 
 #'''Main Function------------------------------------------------------------------------------------------------------------- '''
     
