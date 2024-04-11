@@ -4,6 +4,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import pickle
+import plotly.express as px
 
 
 # MongoDB libraries
@@ -200,15 +201,31 @@ def form_content(username):
     # Load the saved model
     if st.button('Predict'):
         # # Convert input data to numpy array
-        input_data_np = np.array(df)  # Adjust input data format as needed
+        #input_data_np = np.array(df)  # Adjust input data format as needed
 
         # Perform inference using the loaded model
-        prediction = loaded_model.predict(input_data_np)
+        prediction = loaded_model.predict(df)
         df['predictions'] = prediction
         # Display prediction
         st.dataframe(data=prediction, use_container_width=True)
 
+    #'''--------------------------------------------------------------------------------------
 
+    st.title("Class Distribution Pie Chart")
+
+    # Count class occurrences (assuming unique class labels)
+    class_counts = prediction['value'].value_counts().reset_index()
+    class_counts.columns = ['Class', 'Count']
+
+    # Display data (optional)
+    st.header("Data")
+    st.dataframe(class_counts)  # Display class counts instead of full data
+
+    # Create the pie chart
+    fig = px.pie(class_counts, values='Count', names='Class', title='Distribution of Classes')
+
+    # Display the chart
+    st.plotly_chart(fig)
 
 
 #'''Main Function------------------------------------------------------------------------------------------------------------- '''
