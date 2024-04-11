@@ -11,6 +11,9 @@ import joblib
 import boto3
 import botocore
 from s3conn import S3Utils, ConnectToS3
+import hashlib
+import json
+import re
 
 
 
@@ -29,129 +32,126 @@ st.set_page_config(page_title='Bank Churn App',
                    page_icon='🤖', layout="wide", 
                    initial_sidebar_state="expanded")
 
+#'''Login Page------------------------------------------------------------------------------------------------------------- '''
 
-#'''Connect to the DB------------------------------------------------------------------------------------------------------------- '''
+# Validate the email format
+def is_valid_email(email):
+    return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
 
-@st.cache_resource
+# Hash the password for secure storage
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
-# def connect_db():
-#     password = os.environ.get("MONGODB_PWD") #This is to grab the password from the .env file
-#     connection_string = f"mongodb+srv://carlosmebratt:{password}@bdm1003.tnmvwtl.mongodb.net/?retryWrites=true&w=majority"
-#     client = MongoClient(connection_string)
-#     db=client["bankchurnapp"]    
-#     return db
+# Save the user dictionary to a JSON file
+def save_users(users):
+    with open('users.json', 'w') as f:
+        json.dump(users, f)
 
-def connect_db():
-    # Replace the connection string with the appropriate one for your local MongoDB instance
-    connection_string = "mongodb://localhost:27017/"
-    client = MongoClient(connection_string)
-    db = client["bankchurnapp"]
-    return db
+# Load users from the JSON file, returning an empty dict if the file doesn't exist
+def load_users():
+    try:
+        with open('users.json', 'r') as f:
+            users = json.load(f)
+    except FileNotFoundError:
+        users = {}
+    return users
 
-#'''Login App Function------------------------------------------------------------------------------------------------------------- '''
+# Register a new user, ensuring no duplicate emails
+def signup(email, password, full_name):
+    users = load_users()
+    if not is_valid_email(email):
+        return False, "Please enter a valid email address."
+    if email in users:
+        return False, "An account with this email already exists."
+    users[email] = {'password': hash_password(password), 'full_name': full_name}
+    save_users(users)
+    return True, "Account created successfully."
 
-def select_signup():
-    st.session_state.form = 'signup_form'
+# Authenticate a user based on email and password
+def login(email, password):
+    users = load_users()
+    if email in users and users[email]['password'] == hash_password(password):
+        return True, users[email]['full_name']
+    return False, ""
 
-def user_update(name, succesful_login):
-    st.session_state.username = name
-    st.session_state.succesful_login=succesful_login
-    
-def update_succesful_login(succesful_login):
-    st.session_state.succesful_login=succesful_login
+# Reset the user's password if the email exists
+def reset_password(email, new_password):
+    users = load_users()
+    if email in users:
+        users[email]['password'] = hash_password(new_password)
+        save_users(users)
+        return True, "Password reset successful."
+    return False, "This email does not exist."
 
-def login_app():
-    db = connect_db()
-    credentials_db=db["credentials"]
+# Functions to handle navigation
+def navigate_to_signup():
+    st.session_state['page'] = 'signup'
+    st.experimental_rerun()
 
-    
-    # Initialize Session States.
-    if 'username' not in st.session_state:
-        st.session_state.username = ''
-    if 'form' not in st.session_state:
-        st.session_state.form = ''
+def navigate_to_reset_password():
+    st.session_state['page'] = 'reset_password'
+    st.experimental_rerun()
 
-    if 'succesful_login' not in st.session_state:
-        st.session_state.succesful_login = False    
-            
-    if st.session_state.username != '':
-        st.sidebar.markdown(''':blue[You are logged in]''')
-        
-        logout = st.sidebar.button(label='Log Out')
-        if logout:
-            # Handle Logout Click
-            st.session_state.username = ''  # Set username to empty string
-            st.session_state.succesful_login = False  # Set successful_login to False
-            st.session_state.form = ''  # Reset form state
-            st.sidebar.success("You have successfully logged out!")
-            st.experimental_rerun() #This is to refresh the page and get rid of the username and password fields from the sidebar
+def navigate_to_login():
+    st.session_state['page'] = 'login'
+    st.experimental_rerun()
 
-    
+# Main function where the Streamlit app logic is defined
+def main():
+    st.title("Bank Churn Prediction App")
 
-    # Initialize Sing In or Sign Up forms
-    if st.session_state.form == 'signup_form' and st.session_state.username == '':
+    # Initialize session state for page navigation and login attempts
+    if 'page' not in st.session_state:
+        st.session_state['page'] = 'login'
+    if 'login_attempt_failed' not in st.session_state:
+        st.session_state['login_attempt_failed'] = False
 
-    
-        signup_form = st.sidebar.form(key='signup_form', clear_on_submit=True)
-        new_username = signup_form.text_input(label='Enter Username*')
-        new_user_email = signup_form.text_input(label='Enter Email Address*')
-        new_user_pas = signup_form.text_input(label='Enter Password*', type='password')
-        user_pas_conf = signup_form.text_input(label='Confirm Password*', type='password')
-        note = signup_form.markdown('**required fields*')
-        signup = signup_form.form_submit_button(label='Sign Up')
-        
-        if signup:
-            if '' in [new_username, new_user_email, new_user_pas]:
-                st.sidebar.error('Some fields are missing')
+    # Login page
+    if st.session_state['page'] == 'login':
+        email = st.text_input("Email address", placeholder="Email")
+        password = st.text_input("Password", type="password")
+        if st.button("Log in"):
+            authenticated, full_name = login(email, password)
+            if authenticated:
+                st.success(f"Welcome back, {full_name}!")
             else:
-                if credentials_db.find_one({'username' : new_username}):
-                    st.sidebar.error('This username already exists')
-                if credentials_db.find_one({'email' : new_user_email}):
-                    st.sidebar.error('This e-mail is already registered')
-                else:
-                    if new_user_pas != user_pas_conf:
-                        st.sidebar.error('Passwords do not match')
-                    else:
-                        user_update(new_username,True)
-                        credentials_db.insert_one({'username' : new_username, 
-                                                'email' : new_user_email, 
-                                                'password' : new_user_pas,
-                                                "creation_time":datetime.now()})
-                        
+                st.error("Email or password is incorrect.")
+                st.session_state['login_attempt_failed'] = True
 
-                        # Handle Logout Click
-                        st.session_state.username = ''  # Set username to empty string
-                        st.session_state.succesful_login = False  # Set successful_login to False
-                        st.session_state.form = ''  # Reset form state
-                        st.sidebar.success('You have successfully registered!')
-                        st.experimental_rerun() #This is to refresh the page and get rid of the username and password fields from the sidebar
-                 
-    
-    
-    elif st.session_state.username == '':
-        login_form = st.sidebar.form(key='signin_form', clear_on_submit=True)
-        username = login_form.text_input(label='Enter Username')
-        password = login_form.text_input(label='Enter Password', type='password')        
-        
+        if st.session_state['login_attempt_failed'] and st.button("Forgot password?"):
+            navigate_to_reset_password()
 
-        if credentials_db.find_one({'username' : username, 'password' : password}):
-            login = login_form.form_submit_button(label='Sign In', on_click=user_update(username,True))
-            if login:
-                st.sidebar.success(f"You are logged in as {username.upper()}")  
-                st.experimental_rerun() #This is to refresh the page and get rid of the username and password fields from the sidebar
-                del password
-        else:
-            login = login_form.form_submit_button(label='Sign In')
-            if login:
-                st.sidebar.error("Username or Password is incorrect. Please try again or create an account.")
-        
+        if st.button("Don't have an account? Sign up"):
+            navigate_to_signup()
 
-    # 'Create Account' button
-    if st.session_state.username == "" and st.session_state.form != 'signup_form':
-        signup_request = st.sidebar.button('Create Account', on_click=select_signup)  
-    
-    return st.session_state.username, st.session_state.succesful_login
+    # Signup page
+    elif st.session_state['page'] == 'signup':
+        new_email = st.text_input("Email address", placeholder="Email")
+        new_full_name = st.text_input("Full Name", placeholder="Full Name")
+        new_password = st.text_input("Password", type="password")
 
+        if st.button("Sign up"):
+            success, message = signup(new_email, new_password, new_full_name)
+            if success:
+                st.success(message)
+                navigate_to_login()
+            else:
+                st.error(message)
+
+    # Password reset page
+    elif st.session_state['page'] == 'reset_password':
+        reset_email = st.text_input("Email address", placeholder="Enter your email")
+        new_password = st.text_input("New Password", type="password")
+
+        if st.button("Reset Password"):
+            success, message = reset_password(reset_email, new_password)
+            if success:
+                st.success(message + " Please log in with your new password.")
+                navigate_to_login()
+            else:
+                st.error(message)
+                if message == "This email does not exist." and st.button("Create an Account"):
+                    navigate_to_signup()
 
 
 #'''Funcionality------------------------------------------------------------------------------------------------------------- '''
