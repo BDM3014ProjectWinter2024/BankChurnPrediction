@@ -15,7 +15,7 @@ def draw_donut_chart(churn_rate):
 
 # Display the Churn Rate Donut Chart
 
-churn_rate = 15  # Assume you got this from your model prediction
+churn_rate = 15  # Assumption
 
 # Draw and display the donut chart
 donut_chart = draw_donut_chart(churn_rate)
