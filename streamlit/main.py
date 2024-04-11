@@ -10,6 +10,8 @@ import os
 import joblib
 import boto3
 import botocore
+from s3conn import S3Utils, ConnectToS3
+
 
 
 # MongoDB libraries
@@ -169,7 +171,25 @@ def form_content(username):
             first_feature_name = row.index[0]  # Get the name of the first feature
             first_feature_value = row[0]  # Get the value of the first feature
             print(f'First Feature: {first_feature_name}: {first_feature_value} -> Prediction: {predictions[index]}')
-        
+    
+    # Select example data
+    st.markdown('**2. Use example data**')    
+    # # Download example data
+    @st.cache_data
+    def convert_df(input_df):
+        return input_df.to_csv(index=False).encode('utf-8')
+    
+    # Get the csv/dataset from S3
+    if connect_to_s3.s3_utils.check_file_exists(connect_to_s3.output_file_key_data_feature_engineering):
+        example_csv = connect_to_s3.s3_utils.read_csv_from_s3(connect_to_s3.output_file_key_data_feature_engineering)
+        csv = convert_df(example_csv)
+
+    st.download_button(
+        label="Download example CSV",
+        data=csv, 
+        file_name='bank_churn_dataset.csv',
+        mime='text/csv',
+    )
     
     # # Initiate the model building process
     # if uploaded_file:  
