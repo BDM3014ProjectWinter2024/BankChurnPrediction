@@ -156,24 +156,18 @@ def main():
 
 #'''Funcionality------------------------------------------------------------------------------------------------------------- '''
 def form_content(username):
+    connect_to_s3 = ConnectToS3()
     
     st.header('Input data')
     st.markdown("**1. Load the clients' data**")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+    
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file, index_col=False)
         input_data = pd.DataFrame(df)
-        
-        model = joblib.load('model.pkl')
-        predictions = model.predict(input_data)
-        
-        for index, row in input_data.iterrows():
-            first_feature_name = row.index[0]  # Get the name of the first feature
-            first_feature_value = row[0]  # Get the value of the first feature
-            print(f'First Feature: {first_feature_name}: {first_feature_value} -> Prediction: {predictions[index]}')
     
     # Select example data
-    st.markdown('**2. Use example data**')    
+    st.markdown('**2. Use example data**')
     # # Download example data
     @st.cache_data
     def convert_df(input_df):
@@ -191,22 +185,22 @@ def form_content(username):
         mime='text/csv',
     )
     
-    # # Initiate the model building process
-    # if uploaded_file:  
-    #     st.subheader('Processing the data')
-    #     st.write('Processing in progress...')
+    # Initiate the model building process
+    if uploaded_file:  
+        st.subheader('Processing the data')
+        st.write('Processing in progress...')
 
-    #     # Placeholder for model building process
-    #     with st.spinner('Wait for it...'):
-    #         time.sleep(2)
+        # Placeholder for model building process
+        with st.spinner('Wait for it...'):
+            time.sleep(2)
 
-    #     #st.write('Customer predictions are now complete!')
-    #     st.markdown(''':blue[Customer data has been loaded!]''')
+        #st.write('Customer predictions are now complete!')
+        st.markdown(''':blue[Customer data has been loaded!]''')
 
-    #     st.dataframe(data=df, use_container_width=True)
+        # st.dataframe(data=df, use_container_width=True)
 
 
-    # #'''--------------------------------------------------------------------------------------
+    #'''--------------------------------------------------------------------------------------
     
     # st.markdown('**2. Load the saved model**')
     # # Load the saved model
@@ -230,36 +224,49 @@ def form_content(username):
 
     
 
-    # #'''--------------------------------------------------------------------------------------
-    # st.markdown('**3. Predict churn clients**')
-    # # Load the saved model
-    # if st.button('Predict'):
-    #     # # Convert input data to numpy array
-    #     #input_data_np = np.array(df)  # Adjust input data format as needed
+    #'''--------------------------------------------------------------------------------------
+    st.markdown('**3. Predict churn clients**')
+    # Load the saved model
+    if st.button('Predict'):
+        # # Convert input data to numpy array
+        #input_data_np = np.array(df)  # Adjust input data format as needed
 
-    #     # Perform inference using the loaded model
-    #     prediction = loaded_model.predict(df)
-    #     df['predictions'] = prediction
-    #     # Display prediction
-    #     st.dataframe(data=prediction, use_container_width=True)
+       # Make predictions local
+        model = joblib.load('model.pkl')
+        predictions = model.predict(input_data)
+        
+        data = []
+        for index, row in input_data.iterrows():
+            id_value = row[0]  # Get the ID value
+            prediction = predictions[index] # Get the prediction value
 
-    # #'''--------------------------------------------------------------------------------------
+            # Append the data to the list
+            data.append({
+                'ID': id_value,
+                'Prediction': prediction
+            })
+        predicted_df = pd.DataFrame(data)
+        
+         # #'''--------------------------------------------------------------------------------------
 
-    # st.title("Class Distribution Pie Chart")
+        # st.title("Class Distribution Pie Chart")
 
-    # # Count class occurrences (assuming unique class labels)
-    # class_counts = prediction['value'].value_counts().reset_index()
-    # class_counts.columns = ['Class', 'Count']
+        # # Count class occurrences (assuming unique class labels)
+        # class_counts = prediction['value'].value_counts().reset_index()
+        # class_counts.columns = ['Class', 'Count']
 
-    # # Display data (optional)
-    # st.header("Data")
-    # st.dataframe(class_counts)  # Display class counts instead of full data
+        # # Display data (optional)
+        # st.header("Data")
+        # st.predicted_df(class_counts)  # Display class counts instead of full data
 
-    # # Create the pie chart
-    # fig = px.pie(class_counts, values='Count', names='Class', title='Distribution of Classes')
+        # # Create the pie chart
+        # fig = px.pie(class_counts, values='Count', names='Class', title='Distribution of Classes')
 
-    # # Display the chart
-    # st.plotly_chart(fig)
+        # # Display the chart
+        # st.plotly_chart(fig)
+        
+
+   
 
 
 #'''Main Function------------------------------------------------------------------------------------------------------------- '''

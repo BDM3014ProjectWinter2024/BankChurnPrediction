@@ -85,6 +85,7 @@ class ConnectToS3:
         self.env = "dev"  # dev, test, staging, prod
         # output file keys for various stages of the pipeline
         self.output_file_key_data_feature_engineering = f'{self.env}/final/bank_data_feature_eng.csv'
+        #s3://introtoaiwinter24/dev/final/model_one/model.pkl
         self.output_file_key_data_random_forest_pkl = f'{self.env}/final/model_one/model.pkl'
         self.output_file_key_data_xg_boost_pkl = f'{self.env}/final/model_two/model.pkl'
         self.output_file_key_data_svm_model_pkl = f'{self.env}/final/model_three/model.pkl'
