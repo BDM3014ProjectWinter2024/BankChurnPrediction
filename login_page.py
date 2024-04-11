@@ -3,8 +3,6 @@ import hashlib
 import json
 import re
 
-# Function definitions
-
 # Validate the email format
 def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
@@ -18,7 +16,7 @@ def save_users(users):
     with open('users.json', 'w') as f:
         json.dump(users, f)
 
-# Load users from the JSON file, returning an empty dict if file doesn't exist
+# Load users from the JSON file, returning an empty dict if the file doesn't exist
 def load_users():
     try:
         with open('users.json', 'r') as f:
@@ -51,8 +49,21 @@ def reset_password(email, new_password):
     if email in users:
         users[email]['password'] = hash_password(new_password)
         save_users(users)
-        return True, "Password reset successfully."
+        return True, "Password reset successful."
     return False, "This email does not exist."
+
+# Functions to handle navigation
+def navigate_to_signup():
+    st.session_state['page'] = 'signup'
+    st.experimental_rerun()
+
+def navigate_to_reset_password():
+    st.session_state['page'] = 'reset_password'
+    st.experimental_rerun()
+
+def navigate_to_login():
+    st.session_state['page'] = 'login'
+    st.experimental_rerun()
 
 # Main function where the Streamlit app logic is defined
 def main():
@@ -64,13 +75,6 @@ def main():
     if 'login_attempt_failed' not in st.session_state:
         st.session_state['login_attempt_failed'] = False
 
-    # Functions to handle navigation
-    def navigate_to_signup():
-        st.session_state['page'] = 'signup'
-    
-    def navigate_to_reset_password():
-        st.session_state['page'] = 'reset_password'
-
     # Login page
     if st.session_state['page'] == 'login':
         email = st.text_input("Email address", placeholder="Email")
@@ -79,46 +83,44 @@ def main():
             authenticated, full_name = login(email, password)
             if authenticated:
                 st.success(f"Welcome back, {full_name}!")
-                st.session_state['login_attempt_failed'] = False
             else:
                 st.error("Email or password is incorrect.")
                 st.session_state['login_attempt_failed'] = True
-        
-        # Display 'Forgot password?' button after a failed login attempt
-        if st.session_state['login_attempt_failed']:
-            if st.button("Forgot password?"):
-                navigate_to_reset_password()
-                
+
+        if st.session_state['login_attempt_failed'] and st.button("Forgot password?"):
+            navigate_to_reset_password()
+
         if st.button("Don't have an account? Sign up"):
             navigate_to_signup()
 
     # Signup page
     elif st.session_state['page'] == 'signup':
-        new_email = st.text_input("Email address", placeholder="Email", key="signup_email")
-        new_full_name = st.text_input("Full Name", placeholder="Full Name", key="signup_full_name")
-        new_password = st.text_input("Password", type="password", key="signup_password")
+        new_email = st.text_input("Email address", placeholder="Email")
+        new_full_name = st.text_input("Full Name", placeholder="Full Name")
+        new_password = st.text_input("Password", type="password")
+
         if st.button("Sign up"):
             success, message = signup(new_email, new_password, new_full_name)
             if success:
                 st.success(message)
-                st.session_state['page'] = 'login'
+                navigate_to_login()
             else:
                 st.error(message)
 
     # Password reset page
     elif st.session_state['page'] == 'reset_password':
-        reset_email = st.text_input("Email address", placeholder="Enter your email", key="reset_email")
-        new_password = st.text_input("New Password", type="password", key="new_password")
+        reset_email = st.text_input("Email address", placeholder="Enter your email")
+        new_password = st.text_input("New Password", type="password")
+
         if st.button("Reset Password"):
             success, message = reset_password(reset_email, new_password)
             if success:
-                st.success(message)
-                st.session_state['page'] = 'login'
+                st.success(message + " Please log in with your new password.")
+                navigate_to_login()
             else:
                 st.error(message)
-                if st.button("Create an account"):
+                if message == "This email does not exist." and st.button("Create an Account"):
                     navigate_to_signup()
 
-# Run the main function when the script is executed
 if __name__ == "__main__":
     main()
