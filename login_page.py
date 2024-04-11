@@ -55,15 +55,15 @@ def reset_password(email, new_password):
 # Functions to handle navigation
 def navigate_to_signup():
     st.session_state['page'] = 'signup'
-    st.experimental_rerun()
+    st.rerun()
 
 def navigate_to_reset_password():
     st.session_state['page'] = 'reset_password'
-    st.experimental_rerun()
+    st.rerun()
 
 def navigate_to_login():
     st.session_state['page'] = 'login'
-    st.experimental_rerun()
+    st.rerun()
 
 # Main function where the Streamlit app logic is defined
 def main():
@@ -106,6 +106,13 @@ def main():
                 navigate_to_login()
             else:
                 st.error(message)
+                if message == "An account with this email already exists.":
+                    # Trigger navigation using session state change instead of button
+                    st.session_state['navigate_to_login'] = True
+                    st.session_state['signup_attempted'] = False  # Reset the signup attempt flag
+
+        if 'navigate_to_login' in st.session_state and st.session_state['navigate_to_login']:
+            navigate_to_login()
 
     # Password reset page
     elif st.session_state['page'] == 'reset_password':
