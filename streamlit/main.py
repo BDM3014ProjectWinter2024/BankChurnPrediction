@@ -5,6 +5,11 @@ import pandas as pd
 import numpy as np
 import pickle
 import plotly.express as px
+from io import StringIO
+import os
+import joblib
+import boto3
+import botocore
 
 
 # MongoDB libraries
@@ -154,78 +159,87 @@ def form_content(username):
     st.markdown("**1. Load the clients' data**")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
     if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file, index_col=False)      
-
+        df = pd.read_csv(uploaded_file, index_col=False)
+        input_data = pd.DataFrame(df)
+        
+        model = joblib.load('model.pkl')
+        predictions = model.predict(input_data)
+        
+        for index, row in input_data.iterrows():
+            first_feature_name = row.index[0]  # Get the name of the first feature
+            first_feature_value = row[0]  # Get the value of the first feature
+            print(f'First Feature: {first_feature_name}: {first_feature_value} -> Prediction: {predictions[index]}')
+        
     
-    # Initiate the model building process
-    if uploaded_file:  
-        st.subheader('Processing the data')
-        st.write('Processing in progress...')
+    # # Initiate the model building process
+    # if uploaded_file:  
+    #     st.subheader('Processing the data')
+    #     st.write('Processing in progress...')
 
-        # Placeholder for model building process
-        with st.spinner('Wait for it...'):
-            time.sleep(2)
+    #     # Placeholder for model building process
+    #     with st.spinner('Wait for it...'):
+    #         time.sleep(2)
 
-        #st.write('Customer predictions are now complete!')
-        st.markdown(''':blue[Customer data has been loaded!]''')
+    #     #st.write('Customer predictions are now complete!')
+    #     st.markdown(''':blue[Customer data has been loaded!]''')
 
-        st.dataframe(data=df, use_container_width=True)
+    #     st.dataframe(data=df, use_container_width=True)
 
 
-    #'''--------------------------------------------------------------------------------------
+    # #'''--------------------------------------------------------------------------------------
     
-    st.markdown('**2. Load the saved model**')
-    # Load the saved model
-    uploaded_pkl = st.file_uploader("Upload .pkl file", type=["pkl"])
+    # st.markdown('**2. Load the saved model**')
+    # # Load the saved model
+    # uploaded_pkl = st.file_uploader("Upload .pkl file", type=["pkl"])
 
-    # Check if a file is uploaded
-    if uploaded_pkl is not None:
-        st.write("File uploaded successfully!")
+    # # Check if a file is uploaded
+    # if uploaded_pkl is not None:
+    #     st.write("File uploaded successfully!")
 
-        try:
-            # Load the model from the file
-            loaded_model = pd.read_pickle(uploaded_pkl)
-            st.success("Model loaded successfully!")
+    #     try:
+    #         # Load the model from the file
+    #         loaded_model = pd.read_pickle(uploaded_pkl)
+    #         st.success("Model loaded successfully!")
 
             
-        except Exception as e:
-            st.error(f"Error loading .pkl file: {e}")
+    #     except Exception as e:
+    #         st.error(f"Error loading .pkl file: {e}")
 
-    else:
-        st.info("Please upload a .pkl file.")
+    # else:
+    #     st.info("Please upload a .pkl file.")
 
     
 
-    #'''--------------------------------------------------------------------------------------
-    st.markdown('**3. Predict churn clients**')
-    # Load the saved model
-    if st.button('Predict'):
-        # # Convert input data to numpy array
-        #input_data_np = np.array(df)  # Adjust input data format as needed
+    # #'''--------------------------------------------------------------------------------------
+    # st.markdown('**3. Predict churn clients**')
+    # # Load the saved model
+    # if st.button('Predict'):
+    #     # # Convert input data to numpy array
+    #     #input_data_np = np.array(df)  # Adjust input data format as needed
 
-        # Perform inference using the loaded model
-        prediction = loaded_model.predict(df)
-        df['predictions'] = prediction
-        # Display prediction
-        st.dataframe(data=prediction, use_container_width=True)
+    #     # Perform inference using the loaded model
+    #     prediction = loaded_model.predict(df)
+    #     df['predictions'] = prediction
+    #     # Display prediction
+    #     st.dataframe(data=prediction, use_container_width=True)
 
-    #'''--------------------------------------------------------------------------------------
+    # #'''--------------------------------------------------------------------------------------
 
-    st.title("Class Distribution Pie Chart")
+    # st.title("Class Distribution Pie Chart")
 
-    # Count class occurrences (assuming unique class labels)
-    class_counts = prediction['value'].value_counts().reset_index()
-    class_counts.columns = ['Class', 'Count']
+    # # Count class occurrences (assuming unique class labels)
+    # class_counts = prediction['value'].value_counts().reset_index()
+    # class_counts.columns = ['Class', 'Count']
 
-    # Display data (optional)
-    st.header("Data")
-    st.dataframe(class_counts)  # Display class counts instead of full data
+    # # Display data (optional)
+    # st.header("Data")
+    # st.dataframe(class_counts)  # Display class counts instead of full data
 
-    # Create the pie chart
-    fig = px.pie(class_counts, values='Count', names='Class', title='Distribution of Classes')
+    # # Create the pie chart
+    # fig = px.pie(class_counts, values='Count', names='Class', title='Distribution of Classes')
 
-    # Display the chart
-    st.plotly_chart(fig)
+    # # Display the chart
+    # st.plotly_chart(fig)
 
 
 #'''Main Function------------------------------------------------------------------------------------------------------------- '''

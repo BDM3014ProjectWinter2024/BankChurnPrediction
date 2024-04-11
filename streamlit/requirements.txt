@@ -1,4 +1,9 @@
-streamlit==1.25.0
-streamlit-authenticator==0.2.2
-pymongo==4.3.3
-python-dotenv==0.17.1
+streamlit
+streamlit-authenticator
+pymongo
+python-dotenv
+boto3
+botocore
+scikit-learn
+joblib
+plotly
