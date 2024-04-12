@@ -95,6 +95,23 @@ def navigate_to_reset_password():
 def navigate_to_login():
     st.session_state['page'] = 'login'
     st.rerun()
+    
+# Create a Function to Draw the Donut Chart
+def draw_donut_chart(churn_rate):
+    fig, ax = plt.subplots()
+    size = 0.3
+    vals = [churn_rate, 100 - churn_rate]
+
+    ax.pie(vals, radius=1, wedgeprops=dict(width=size, edgecolor='w'))
+
+    ax.set(aspect="equal")
+    plt.text(-0.05, 0, f'{churn_rate}%', ha='center', va='center', fontsize=12)
+    return fig
+
+# Define a function to handle customer ID click
+def handle_customer_click(customer_id):
+    st.session_state['selected_customer_id'] = customer_id
+    st.session_state['navigation'] = 'customer_detail'
 
 # Main function where the Streamlit app logic is defined
 def main():
@@ -160,7 +177,15 @@ def main():
                 if message == "This email does not exist." and st.button("Create an Account"):
                     navigate_to_signup()
 
-
+# Sidebar navigation
+with st.sidebar:
+    if st.button('Home'):
+        st.session_state['navigation'] = 'home'
+    if st.button('Reports'):
+        st.session_state['navigation'] = 'reports'
+    if st.button('Profile'):
+        st.session_state['navigation'] = 'profile'
+        
 #'''Funcionality------------------------------------------------------------------------------------------------------------- '''
 def form_content(username):
     connect_to_s3 = ConnectToS3()
@@ -172,6 +197,85 @@ def form_content(username):
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file, index_col=False)
         input_data = pd.DataFrame(df)
+        
+        # Initiate the model building process
+        if uploaded_file:  
+            st.subheader('Processing the data')
+            st.write('Processing in progress...')
+
+            # Placeholder for model building process
+            with st.spinner('Wait for it...'):
+                time.sleep(2)
+
+            #st.write('Customer predictions are now complete!')
+            st.markdown(''':blue[Customer data has been loaded!]''')
+
+            # st.dataframe(data=df, use_container_width=True)
+            
+            #'''--------------------------------------------------------------------------------------
+            st.markdown('**3. Predict churn clients**')
+            # Load the saved model
+            if st.button('Predict'):
+                # # Convert input data to numpy array
+                #input_data_np = np.array(df)  # Adjust input data format as needed
+
+            # Make predictions local this is working on local mode
+                model = joblib.load('model.pkl')
+                #Predict the data
+                predictions = model.predict(input_data)
+                
+                # Make predictions s3
+                # if connect_to_s3.s3_utils.check_file_exists(connect_to_s3.output_file_key_data_random_forest_pkl):
+                # # Load the model directly from S3
+                #     model = connect_to_s3.load_model_from_s3(connect_to_s3.output_file_key_data_random_forest_pkl)
+
+                #     predictions = model.predict(input_data)
+                #     st.write("Model file not found in S3.")
+                #     for index, row in input_data.iterrows():
+                #         first_feature_name = row.index[0]  # Get the name of the first feature
+                #         first_feature_value = row[0]  # Get the value of the first feature
+                #         st.write(f'First Feature: {first_feature_name}: {first_feature_value} -> Prediction: {predictions[index]}')
+                # else:
+                #     st.write("Model file not found in S3.")
+
+                
+            
+                data = []
+                for index, row in input_data.iterrows():
+                    id_value = row.iloc[0]  # Use .iloc to get the ID value by position
+                    prediction = predictions[index]  # Get the prediction value
+
+                    # Append the data to the list
+                    data.append({
+                        'ID': id_value,
+                        'Prediction': prediction
+                    })
+                predicted_df = pd.DataFrame(data)
+                
+                #'''--------------------------------------------------------------------------------------
+                # Main page content based on navigation state
+                if st.session_state['navigation'] == 'home':
+                    st.title("Churn Rate Dashboard")
+                    churn_rate = 15  # Assumption
+                    donut_chart = draw_donut_chart(churn_rate)
+                    st.pyplot(donut_chart)
+
+                    st.subheader("Customers Likely to Churn")
+                    for index, row in predicted_df.iterrows():
+                        if st.button(f"Customer ID: {row['ID']} - Predicted Churn: {row['Prediction']}"):
+                            handle_customer_click(row['ID'])
+                    
+                
+                # elif st.session_state['navigation'] == 'customer_detail':
+                #     st.write(f"Details for customer ID: {st.session_state['selected_customer_id']}")
+
+                # elif st.session_state['navigation'] == 'reports':
+                #     st.write("Reports Page Content")
+
+                # elif st.session_state['navigation'] == 'profile':
+                #     st.write("Profile Page Content")
+        
+
     
     # Select example data
     st.markdown('**2. Use example data**')
@@ -192,20 +296,7 @@ def form_content(username):
         mime='text/csv',
     )
     
-    # Initiate the model building process
-    if uploaded_file:  
-        st.subheader('Processing the data')
-        st.write('Processing in progress...')
-
-        # Placeholder for model building process
-        with st.spinner('Wait for it...'):
-            time.sleep(2)
-
-        #st.write('Customer predictions are now complete!')
-        st.markdown(''':blue[Customer data has been loaded!]''')
-
-        # st.dataframe(data=df, use_container_width=True)
-
+    
 
     #'''--------------------------------------------------------------------------------------
     
@@ -231,68 +322,7 @@ def form_content(username):
 
     
 
-    #'''--------------------------------------------------------------------------------------
-    st.markdown('**3. Predict churn clients**')
-    # Load the saved model
-    if st.button('Predict'):
-        # # Convert input data to numpy array
-        #input_data_np = np.array(df)  # Adjust input data format as needed
-
-       # Make predictions local this is working on local mode
-        model = joblib.load('model.pkl')
-        #Predict the data
-        predictions = model.predict(input_data)
-        
-        # Make predictions s3
-        # if connect_to_s3.s3_utils.check_file_exists(connect_to_s3.output_file_key_data_random_forest_pkl):
-        # # Load the model directly from S3
-        #     model = connect_to_s3.load_model_from_s3(connect_to_s3.output_file_key_data_random_forest_pkl)
-
-        #     predictions = model.predict(input_data)
-        #     st.write("Model file not found in S3.")
-        #     for index, row in input_data.iterrows():
-        #         first_feature_name = row.index[0]  # Get the name of the first feature
-        #         first_feature_value = row[0]  # Get the value of the first feature
-        #         st.write(f'First Feature: {first_feature_name}: {first_feature_value} -> Prediction: {predictions[index]}')
-        # else:
-        #     st.write("Model file not found in S3.")
-
-        
-       
-        data = []
-        for index, row in input_data.iterrows():
-            id_value = row.iloc[0]  # Use .iloc to get the ID value by position
-            prediction = predictions[index]  # Get the prediction value
-
-            # Append the data to the list
-            data.append({
-                'ID': id_value,
-                'Prediction': prediction
-            })
-        predicted_df = pd.DataFrame(data)
-        
-         #'''--------------------------------------------------------------------------------------
-
-        st.title("Class Distribution Pie Chart")
-
-        # Count class occurrences (assuming the column with class labels is named 'Prediction')
-        class_counts = predicted_df['Prediction'].value_counts().reset_index()
-        class_counts.columns = ['Clients', 'Count']
-
-        # Customize class labels
-        class_counts['Class'] = class_counts['Class'].map({1: 'Churned', 0: 'Not Churned'})
-
-        # Display data (optional)
-        st.write(class_counts)  # Use st.write to display the DataFrame
-
-        # Create the pie chart
-        fig = px.pie(class_counts, values='Count', names='Class', title='Distribution of Classes')
-
-        # Display the chart
-        st.plotly_chart(fig)
-        
-
-   
+    
 
 
 #'''Main Function------------------------------------------------------------------------------------------------------------- '''
@@ -300,21 +330,23 @@ def form_content(username):
 
 def main():
     # Initialize Session States.
-    succesful_login=False
-    username, succesful_login=login_app()
+    # succesful_login=False
+    # username, succesful_login=login_app()
 
-    st.title('Machine Learning App for Bank Churn Prediction')
+    # st.title('Machine Learning App for Bank Churn Prediction')
     
 
-    if succesful_login == False:        
-        st.subheader("Please use the sidebar on the left to log in or create an account.")
-        st.image('image1.png')
+    # if succesful_login == False:        
+    #     st.subheader("Please use the sidebar on the left to log in or create an account.")
+    #     st.image('image1.png')
 
-    else:
-        with st.sidebar:             
-            st.header(f"Welcome {username} !")
+    # else:
+    #     with st.sidebar:             
+    #         st.header(f"Welcome {username} !")
         
-        form_content(username)
+    #     form_content(username)
+    
+    form_content('Prescila')
 
 
 #'''Sidebar------------------------------------------------------------------------------------------------------------- '''

@@ -5,7 +5,7 @@ import pandas as pd
 # Define a function to load data from a CSV file
 @st.cache_data
 def load_data():
-    data = pd.read_csv('/workspaces/BankChurnPrediction/dummy_customers_to_churn.csv')
+    data = pd.read_csv('dummy_customers_to_churn.csv')
     return data
 
 # Load data into dummy_customers_to_churn
@@ -44,7 +44,7 @@ with st.sidebar:
         st.session_state['navigation'] = 'profile'
 
 # Main page content based on navigation state
-if st.session_state['navigation'] == 'home':
+#if st.session_state['navigation'] == 'home':
     st.title("Churn Rate Dashboard")
     churn_rate = 15  # Assumption
     donut_chart = draw_donut_chart(churn_rate)
@@ -55,11 +55,11 @@ if st.session_state['navigation'] == 'home':
         if st.button(f"Customer ID: {row['customer_id']} - Predicted Churn: {row['churn_probability']}"):
             handle_customer_click(row['customer_id'])
 
-elif st.session_state['navigation'] == 'customer_detail':
+#elif st.session_state['navigation'] == 'customer_detail':
     st.write(f"Details for customer ID: {st.session_state['selected_customer_id']}")
 
-elif st.session_state['navigation'] == 'reports':
-    st.write("Reports Page Content")
+#elif st.session_state['navigation'] == 'reports':
+#    st.write("Reports Page Content")
 
-elif st.session_state['navigation'] == 'profile':
-    st.write("Profile Page Content")
+#elif st.session_state['navigation'] == 'profile':
+#    st.write("Profile Page Content")
