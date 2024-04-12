@@ -93,4 +93,4 @@ class ConnectToS3:
         self.output_file_key_data_svm_model_tar = f'{self.env}/final/model_three/model.tar.gz'
         # Initialize S3Utils using credentials from Secrets Manager
         self.s3_utils = S3Utils(secret_name_or_arn="arn:aws:secretsmanager:us-east-2:767397996410:secret:dev/s3/bucket_token-6t6xMP")
- 
+        
