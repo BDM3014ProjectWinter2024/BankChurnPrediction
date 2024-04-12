@@ -238,14 +238,31 @@ def form_content(username):
         # # Convert input data to numpy array
         #input_data_np = np.array(df)  # Adjust input data format as needed
 
-       # Make predictions local
+       # Make predictions local this is working on local mode
         model = joblib.load('model.pkl')
+        #Predict the data
         predictions = model.predict(input_data)
         
+        # Make predictions s3
+        # if connect_to_s3.s3_utils.check_file_exists(connect_to_s3.output_file_key_data_random_forest_pkl):
+        # # Load the model directly from S3
+        #     model = connect_to_s3.load_model_from_s3(connect_to_s3.output_file_key_data_random_forest_pkl)
+
+        #     predictions = model.predict(input_data)
+        #     st.write("Model file not found in S3.")
+        #     for index, row in input_data.iterrows():
+        #         first_feature_name = row.index[0]  # Get the name of the first feature
+        #         first_feature_value = row[0]  # Get the value of the first feature
+        #         st.write(f'First Feature: {first_feature_name}: {first_feature_value} -> Prediction: {predictions[index]}')
+        # else:
+        #     st.write("Model file not found in S3.")
+
+        
+       
         data = []
         for index, row in input_data.iterrows():
-            id_value = row[0]  # Get the ID value
-            prediction = predictions[index] # Get the prediction value
+            id_value = row.iloc[0]  # Use .iloc to get the ID value by position
+            prediction = predictions[index]  # Get the prediction value
 
             # Append the data to the list
             data.append({
@@ -254,23 +271,25 @@ def form_content(username):
             })
         predicted_df = pd.DataFrame(data)
         
-         # #'''--------------------------------------------------------------------------------------
+         #'''--------------------------------------------------------------------------------------
 
-        # st.title("Class Distribution Pie Chart")
+        st.title("Class Distribution Pie Chart")
 
-        # # Count class occurrences (assuming unique class labels)
-        # class_counts = prediction['value'].value_counts().reset_index()
-        # class_counts.columns = ['Class', 'Count']
+        # Count class occurrences (assuming the column with class labels is named 'Prediction')
+        class_counts = predicted_df['Prediction'].value_counts().reset_index()
+        class_counts.columns = ['Clients', 'Count']
 
-        # # Display data (optional)
-        # st.header("Data")
-        # st.predicted_df(class_counts)  # Display class counts instead of full data
+        # Customize class labels
+        class_counts['Class'] = class_counts['Class'].map({1: 'Churned', 0: 'Not Churned'})
 
-        # # Create the pie chart
-        # fig = px.pie(class_counts, values='Count', names='Class', title='Distribution of Classes')
+        # Display data (optional)
+        st.write(class_counts)  # Use st.write to display the DataFrame
 
-        # # Display the chart
-        # st.plotly_chart(fig)
+        # Create the pie chart
+        fig = px.pie(class_counts, values='Count', names='Class', title='Distribution of Classes')
+
+        # Display the chart
+        st.plotly_chart(fig)
         
 
    

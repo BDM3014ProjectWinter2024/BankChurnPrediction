@@ -2,6 +2,8 @@ import json
 import boto3
 import botocore
 import pandas as pd
+from smart_open import open
+import joblib
 
 class S3Utils:
     def __init__(self, secret_name_or_arn, file_path=None):
