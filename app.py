@@ -113,8 +113,7 @@ def main():
             navigate_to_login()
 
     if st.session_state.get('authenticated', False):
-        st.write("Bank Churn Prediction Dashboard.")
-        st.image('/path/to/your/image.png', width=200)
+        st.image('/workspaces/BankChurnPrediction/group3.png', width=600)
     else:
         st.write("Please log in to see the dashboard.")
 
