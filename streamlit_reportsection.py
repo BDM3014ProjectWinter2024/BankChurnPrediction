@@ -23,16 +23,14 @@ st.pyplot(donut_chart)
 
 # Display the List of Customers Likely to Churn
 
-# Or for custom list layout
 for index, row in customers_to_churn.iterrows():
     st.write(f"Customer ID: {row['customer_id']} - Predicted Churn: {row['churn_probability']}")
 
 # Implement Navigation
 if st.button('Back'):
-    # Code to go back (usually this will be handled by your page control logic)
     pass
 
-# For navigation links, you can also use st.sidebar for this
+# For navigation links, use st.sidebar for this
 with st.sidebar:
     if st.button('Home'):
         # Navigate to Home
