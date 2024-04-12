@@ -313,22 +313,22 @@ def form_content(username):
     
     # st.header('Input data')
      # Select example data
-    st.markdown('**Use sample data**')
-    # # Download example data
-    @st.cache_data
-    def convert_df(input_df):
-        return input_df.to_csv(index=False).encode('utf-8')
-    # Get the csv/dataset from S3
-    if connect_to_s3.s3_utils.check_file_exists(connect_to_s3.output_file_key_data_feature_engineering):
-        example_csv = connect_to_s3.s3_utils.read_csv_from_s3(connect_to_s3.output_file_key_data_feature_engineering)
-        csv = convert_df(example_csv)
+    # st.markdown('**Use sample data**')
+    # # # Download example data
+    # @st.cache_data
+    # def convert_df(input_df):
+    #     return input_df.to_csv(index=False).encode('utf-8')
+    # # Get the csv/dataset from S3
+    # if connect_to_s3.s3_utils.check_file_exists(connect_to_s3.output_file_key_data_feature_engineering):
+    #     example_csv = connect_to_s3.s3_utils.read_csv_from_s3(connect_to_s3.output_file_key_data_feature_engineering)
+    #     csv = convert_df(example_csv)
 
-    st.download_button(
-        label="Download example CSV",
-        data=csv, 
-        file_name='bank_churn_dataset.csv',
-        mime='text/csv',
-    )
+    # st.download_button(
+    #     label="Download example CSV",
+    #     data=csv, 
+    #     file_name='bank_churn_dataset.csv',
+    #     mime='text/csv',
+    # )
     
     
     st.markdown("**1. Load the clients' data**")
@@ -358,7 +358,7 @@ def form_content(username):
             # st.dataframe(data=df, use_container_width=True)
             
             #'''--------------------------------------------------------------------------------------
-            st.markdown('**3. Predict churn clients**')
+            st.markdown('**2. Predict churn clients**')
             # Load the saved model
             if st.button('Predict'):
             # Make predictions local this is working on local mode
@@ -366,7 +366,7 @@ def form_content(username):
                 # Load PCA and Clustering models
                 pca = joblib.load('pca.pkl')
                 clustering_model = joblib.load('clustering_model.pkl')
-                recommendations_df = pd.read_csv('recommendations.csv')
+                recommendations_df = pd.read_csv('recommendations.csv', index_col="Cluster")
                 #Predict the data
                 predictions = model.predict(input_data)
                 
@@ -444,9 +444,10 @@ def form_content(username):
                 # Add the prediction column to input_data for easy filtering (if needed)
                 input_data['Prediction'] = predictions
 
-                # Sample DataFrame creation code
-                # Assuming predicted_df is your DataFrame containing 'Customer ID' and 'Prediction'
-
+                                # Load PCA and clustering models
+                pca = joblib.load('pca.pkl')
+                clustering_model = joblib.load('clustering_model.pkl')
+                
                 # Create tabs for Churned and Not Churned
                 tab1, tab2 = st.tabs(["Churned", "Not Churned"])
 
@@ -454,53 +455,52 @@ def form_content(username):
                 with tab1:
                     churned_df = predicted_df[predicted_df['Prediction'] == 1]
                     if not churned_df.empty:
+                        # Ensure Customer ID is correctly formatted as string without commas
+                        churned_df['Customer ID'] = churned_df['Customer ID'].astype(str).str.replace(',', '')
                         st.dataframe(churned_df[['Customer ID']])
                     else:
                         st.write("No customers predicted as Churned.")
 
-                # Tab for customers predicted as 'Not Churned'
                 with tab2:
                     not_churned_df = predicted_df[predicted_df['Prediction'] == 0]
                     if not not_churned_df.empty:
+                        # Similarly, clean the Customer ID for the Not Churned dataframe
+                        not_churned_df['Customer ID'] = not_churned_df['Customer ID'].astype(str).str.replace(',', '')
                         st.dataframe(not_churned_df[['Customer ID']])
                     else:
                         st.write("No customers predicted as Not Churned.")
-               
-                predicted_churned_df = input_data[input_data['Prediction'] == 1]
-
-                # # Print basic information about the DataFrame
-                # st.write('Predicted Churn DataFrame:', predicted_churned_df)
-
-                # # Check if DataFrame is not empty
-                # if not predicted_churned_df.empty:
-                #     # Apply PCA transformation
-                #     X_pca = pca.transform(predicted_churned_df.iloc[:, 2:])  # Adjust the slice as necessary to match PCA feature dimensions
-
-                #     # Predict clusters
-                #     clusters = clustering_model.predict(X_pca)
-                #     predicted_churned_df['Cluster'] = clusters  # Append cluster predictions to DataFrame
-
-                #     # Display DataFrame in Streamlit (optional, for verification)
-                #     st.write('DataFrame with Clusters:', predicted_churned_df)
-                # else:
-                #     st.error("No churn predictions were made.")
                     
+                try:
+                    # Transform the data using PCA
+                    X_pca = pca.transform(predicted_df.iloc[:, 2:])  # Adjust this to include only the feature columns
+                    predicted_df['Cluster'] = clustering_model.predict(X_pca)
+                except ValueError as e:
+                    st.error(f"Failed to transform data or predict clusters: {e}")
+                    st.stop()
 
-                # Function to display recommendations based on the cluster
-                def show_recommendations(cluster):
-                    recommendations = recommendations_df.loc[cluster, 'Recommendations']
-                    return recommendations
+                tab1, tab2 = st.tabs(["Customers", "Recommendations"])
 
-                # Interactive display of customer IDs
-                if not predicted_churned_df.empty:
-                    for index, row in predicted_churned_df.iterrows():
-                        if st.button(f"Customer ID: {row['id']} - Cluster: {row['Cluster']}"):
-                            # Fetch and display recommendations when a customer ID button is clicked
-                            rec_text = show_recommendations(row['Cluster'])
-                            st.write(f"Recommendations for Cluster {row['Cluster']}:")
-                            st.write(rec_text)
-                else:
-                    st.write("No churn predictions were made.")
+                # with tab1:
+                #     churned_df = predicted_df[predicted_df['Prediction'] == 1]
+                #     if not churned_df.empty:
+                #         st.dataframe(churned_df[['Customer ID', 'Cluster']])
+                #     else:
+                #         st.write("No customers predicted as Churned.")
+
+                # with tab2:
+                #     if 'selected_customer_id' in st.session_state:
+                #         # Assuming recommendations_df is loaded correctly
+                #         customer_row = predicted_df[predicted_df['Customer ID'] == st.session_state['selected_customer_id']].iloc[0]
+                #         cluster = customer_row['Cluster']
+                #         recommendations = recommendations_df.loc[cluster, 'Recommendations']
+                #         st.write(f"Recommendations for Customer ID {st.session_state['selected_customer_id']} (Cluster {cluster}):")
+                #         st.write(recommendations)
+                #     else:
+                #         st.write("Select a customer to view recommendations.")
+
+
+                # Ensure recommendations_df is loaded appropriately
+                # recommendations_df = pd.read_csv('path_to_recommendations.csv', index_col="Cluster")
 
                     
                 #''' End Lists All Churned--------------------------------------------------------------------------------------    
