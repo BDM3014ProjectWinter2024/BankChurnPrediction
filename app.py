@@ -114,7 +114,7 @@ def main():
 
     if st.session_state.get('authenticated', False):
         st.write("Bank Churn Prediction Dashboard.")
-        # Display additional content or analysis here
+        st.image('/path/to/your/image.png', width=200)
     else:
         st.write("Please log in to see the dashboard.")
 
