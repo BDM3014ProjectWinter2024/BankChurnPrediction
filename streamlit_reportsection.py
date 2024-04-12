@@ -13,31 +13,34 @@ def draw_donut_chart(churn_rate):
     plt.text(-0.05, 0, f'{churn_rate}%', ha='center', va='center', fontsize=12)
     return fig
 
+# Initialize session state variables
+if 'navigation' not in st.session_state:
+    st.session_state['navigation'] = 'home'
+
 # Display the Churn Rate Donut Chart
-
 churn_rate = 15  # Assumption
-
-# Draw and display the donut chart
 donut_chart = draw_donut_chart(churn_rate)
 st.pyplot(donut_chart)
 
+# Define a function to handle customer ID click
+def handle_customer_click(customer_id):
+    # Here you would define what happens when a customer ID is clicked
+    # For demonstration purposes, we'll just write the ID to the page
+    st.session_state['navigation'] = 'customer_detail'
+    st.session_state['selected_customer_id'] = customer_id
+
+# Check if we are on the 'customer_detail' page
+if st.session_state['navigation'] == 'customer_detail':
+    st.write(f"Details for customer ID: {st.session_state['selected_customer_id']}")
+
 # Display the List of Customers Likely to Churn
+# This assumes `customers_to_churn` is a DataFrame with customer data.
+for index, row in dummy_customers_to_churn.iterrows():
+    if st.button(f"Customer ID: {row['customer_id']}"):
+        handle_customer_click(row['customer_id'])
 
-for index, row in customers_to_churn.iterrows():
-    st.write(f"Customer ID: {row['customer_id']} - Predicted Churn: {row['churn_probability']}")
-
-# Implement Navigation
-if st.button('Back'):
-    pass
-
-# For navigation links, use st.sidebar for this
+# Sidebar navigation
 with st.sidebar:
     if st.button('Home'):
-        # Navigate to Home
-        pass
-    if st.button('Reports'):
-        # Navigate to Reports
-        pass
-    if st.button('Profile'):
-        # Navigate to Profile
-        pass
+        st.session_state['navigation'] = '
+
