@@ -313,30 +313,26 @@ def form_content(username):
     
     # st.header('Input data')
      # Select example data
-    # st.markdown('**Use sample data**')
-    # # # Download example data
-    # @st.cache_data
-    # def convert_df(input_df):
-    #     return input_df.to_csv(index=False).encode('utf-8')
-    # # Get the csv/dataset from S3
-    # if connect_to_s3.s3_utils.check_file_exists(connect_to_s3.output_file_key_data_feature_engineering):
-    #     example_csv = connect_to_s3.s3_utils.read_csv_from_s3(connect_to_s3.output_file_key_data_feature_engineering)
-    #     csv = convert_df(example_csv)
+    st.markdown('**Use sample data**')
+    # # Download example data
+    @st.cache_data
+    def convert_df(input_df):
+        return input_df.to_csv(index=False).encode('utf-8')
+    # Get the csv/dataset from S3
+    if connect_to_s3.s3_utils.check_file_exists(connect_to_s3.output_file_key_data_feature_engineering):
+        example_csv = connect_to_s3.s3_utils.read_csv_from_s3(connect_to_s3.output_file_key_data_feature_engineering)
+        csv = convert_df(example_csv)
 
-    # st.download_button(
-    #     label="Download example CSV",
-    #     data=csv, 
-    #     file_name='bank_churn_dataset.csv',
-    #     mime='text/csv',
-    # )
+    st.download_button(
+        label="Download example CSV",
+        data=csv, 
+        file_name='bank_churn_dataset.csv',
+        mime='text/csv',
+    )
     
     
     st.markdown("**1. Load the clients' data**")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
-    
-   
-  
-    
     
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file, index_col=False)
@@ -470,15 +466,52 @@ def form_content(username):
                     else:
                         st.write("No customers predicted as Not Churned.")
                     
-                try:
-                    # Transform the data using PCA
-                    X_pca = pca.transform(predicted_df.iloc[:, 2:])  # Adjust this to include only the feature columns
-                    predicted_df['Cluster'] = clustering_model.predict(X_pca)
-                except ValueError as e:
-                    st.error(f"Failed to transform data or predict clusters: {e}")
-                    st.stop()
+                # try:
+                #     # Transform the data using PCA
+                #     X_pca = pca.transform(predicted_df.iloc[:, 2:])  # Adjust this to include only the feature columns
+                #     predicted_df['Cluster'] = clustering_model.predict(X_pca)
+                # except ValueError as e:
+                #     st.error(f"Failed to transform data or predict clusters: {e}")
+                #     st.stop()
+                    
+                # Filter to find data where prediction indicates potential churn
+                predicted_churn_df = input_data[input_data['Prediction'] == 1]
 
-                tab1, tab2 = st.tabs(["Customers", "Recommendations"])
+                # Load PCA model and clustering model
+                pca = joblib.load('pca.pkl')
+                clustering_model = joblib.load('clustering_model.pkl')
+
+                # Load recommendations data
+                recommendations_df = pd.read_csv('recommendations.csv')
+
+                # Filter to identify potential churn
+                predicted_churn_df = input_data[input_data['Prediction'] == 1]
+
+                if not predicted_churn_df.empty:
+                    print(f'Predicted Churn DataFrame Shape: {predicted_churn_df.shape}')
+                    
+                    # Transform data using PCA
+                    X_pca = pca.transform(predicted_churn_df.iloc[:, 2:])
+                    clusters = clustering_model.predict(X_pca)
+                    
+                    if len(clusters) == len(predicted_churn_df):
+                        predicted_churn_df['Cluster'] = clusters
+                        # Display results in the app
+                        for id_value, cluster in zip(predicted_churn_df['id'], clusters):
+                            # Fetch the recommendation safely
+                            recommendation_row = recommendations_df[recommendations_df['Cluster'] == cluster]
+                            if not recommendation_row.empty:
+                                recommendation = recommendation_row['Recommendations'].values[0]
+                                st.write(f'Customer Id: {id_value}, Cluster: {cluster}, Recommendation: {recommendation}')
+                            else:
+                                st.write(f'Customer Id: {id_value}, Cluster: {cluster}, Recommendation: None found for this cluster')
+                    else:
+                        st.error("Error: Mismatch in the number of predicted clusters and the number of rows in the DataFrame.")
+                else:
+                    st.write("No churn predictions were made.")
+
+
+                # tab1, tab2 = st.tabs(["Customers", "Recommendations"])
 
                 # with tab1:
                 #     churned_df = predicted_df[predicted_df['Prediction'] == 1]
